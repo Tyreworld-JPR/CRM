@@ -1,142 +1,18 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>TyreWorld CRM</title>
+  <title>Test CRM</title>
 </head>
 <body>
 
-<h2>TyreWorld CRM</h2>
+<h1>TyreWorld CRM Working ✅</h1>
 
-<button onclick="sendToday()">🚀 Send Today</button>
-<button onclick="sendFollowUps()">🔁 Follow-Up</button>
+<button onclick="test()">Click Me</button>
 
 <script>
-
-// GOOGLE SHEET LINK
-const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSVujJhOe5wbd7GZOTbbvDxG3DSQXyj7vynDP68DXuaYPk2SyFXIC84DuQFivAQrLnrYA2tBZt5SiKj/pub?output=csv";
-
-// LOAD DATA
-async function loadData() {
-  const res = await fetch(SHEET_URL);
-  const text = await res.text();
-
-  const rows = text.split("\n").map(r => r.split(","));
-
-  let customers = rows.slice(1).map(r => ({
-    name: r[0],
-    mobile: r[1],
-    vehicle: r[2],
-    next_due_date: r[3],
-    last_sent_date: ""
-  }));
-
-  localStorage.setItem("customers", JSON.stringify(customers));
+function test(){
+  alert("System Working Perfect 🔥");
 }
-
-loadData();
-
-// TODAY SEND
-function sendToday() {
-  let customers = JSON.parse(localStorage.getItem("customers")) || [];
-  let today = new Date().toISOString().split("T")[0];
-
-  let list = customers.filter(c => c.next_due_date === today);
-
-  let queue = list.map((c,i) => {
-    markSent(i);
-    return {
-      name: c.name,
-      number: c.mobile,
-      message: `Namaste ${c.name} ji 🙏
-Aapke vehicle ke tyres ka check-up due hai`
-    };
-  });
-
-  localStorage.setItem("whatsappQueue", JSON.stringify(queue));
-
-  openSender();
-}
-
-// FOLLOW-UP LOGIC
-function getFollowUpCustomers(customers) {
-  let today = new Date();
-
-  return customers.filter(c => {
-    if (!c.last_sent_date) return false;
-
-    let last = new Date(c.last_sent_date);
-    let diff = Math.floor((today - last) / (1000 * 60 * 60 * 24));
-
-    return diff === 3 || diff === 7;
-  });
-}
-
-// FOLLOW-UP MESSAGE
-function getFollowUpMessage(c) {
-  let today = new Date();
-  let last = new Date(c.last_sent_date);
-  let diff = Math.floor((today - last) / (1000 * 60 * 60 * 24));
-
-  if (diff === 3) {
-    return `Namaste ${c.name} ji 🙏
-Reminder: tyre check pending hai`;
-  }
-
-  if (diff === 7) {
-    return `Namaste ${c.name} ji 🙏
-Final reminder: service zaroor karwayein`;
-  }
-}
-
-// SEND FOLLOW-UP
-function sendFollowUps() {
-  let customers = JSON.parse(localStorage.getItem("customers")) || [];
-
-  let list = getFollowUpCustomers(customers);
-
-  let queue = list.map(c => ({
-    name: c.name,
-    number: c.mobile,
-    message: getFollowUpMessage(c)
-  }));
-
-  localStorage.setItem("whatsappQueue", JSON.stringify(queue));
-
-  openSender();
-}
-
-// MARK SENT
-function markSent(index) {
-  let customers = JSON.parse(localStorage.getItem("customers")) || [];
-
-  customers[index].last_sent_date = new Date().toISOString().split("T")[0];
-
-  localStorage.setItem("customers", JSON.stringify(customers));
-}
-
-// OPEN WHATSAPP
-function openSender() {
-  let queue = JSON.parse(localStorage.getItem("whatsappQueue")) || [];
-
-  let i = 0;
-
-  function sendNext() {
-    if (i >= queue.length) return;
-
-    let c = queue[i];
-
-    let url = `https://wa.me/91${c.number}?text=${encodeURIComponent(c.message)}`;
-
-    window.open(url, "_blank");
-
-    i++;
-
-    setTimeout(sendNext, 30000);
-  }
-
-  sendNext();
-}
-
 </script>
 
 </body>
