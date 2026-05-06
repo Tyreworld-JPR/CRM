@@ -1,34 +1,69 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>TyreWorld CRM</title>
-  <style>
-    body { font-family: Arial; padding: 20px; }
-    button { padding:10px; margin:5px; cursor:pointer; }
-    .card {
-      border:1px solid #ddd;
-      padding:10px;
-      margin:10px 0;
-      border-radius:8px;
-    }
-  </style>
+<title>TyreWorld CRM</title>
+
+<style>
+body {
+  font-family: Arial;
+  margin:0;
+  background:#f5f6fa;
+}
+
+.header {
+  background:#ff5722;
+  color:white;
+  padding:15px;
+  font-size:20px;
+}
+
+.container {
+  padding:15px;
+}
+
+button {
+  padding:10px;
+  margin:5px;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+}
+
+.btn-today { background:#4caf50; color:white; }
+.btn-follow { background:#2196f3; color:white; }
+
+.card {
+  background:white;
+  padding:15px;
+  margin:10px 0;
+  border-radius:10px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.1);
+}
+
+.name { font-weight:bold; font-size:16px; }
+.mobile { color:gray; }
+
+</style>
+
 </head>
 
 <body>
 
-<h2>TyreWorld CRM 🚗</h2>
+<div class="header">🚗 TyreWorld CRM</div>
 
-<button onclick="sendToday()">🚀 Send Today</button>
-<button onclick="sendFollowUps()">🔁 Follow-Up</button>
+<div class="container">
+
+<button class="btn-today" onclick="sendToday()">🚀 Send Today</button>
+<button class="btn-follow" onclick="sendFollowUps()">🔁 Follow-Up</button>
 
 <div id="list"></div>
 
+</div>
+
 <script>
 
-// 🔗 GOOGLE SHEET CSV
 const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSVujJhOe5wbd7GZOTbbvDxG3DSQXyj7vynDP68DXuaYPk2SyFXIC84DuQFivAQrLnrYA2tBZt5SiKj/pub?output=csv";
 
-// LOAD DATA
 async function loadData(){
   const res = await fetch(SHEET_URL);
   const text = await res.text();
@@ -49,38 +84,40 @@ async function loadData(){
 
 loadData();
 
-// DISPLAY
 function display(data){
-  let html = "";
+  let html="";
 
   data.forEach(c=>{
     html += `
-      <div class="card">
-        <b>${c.name}</b><br>
-        ${c.mobile}<br>
-        Due: ${c.next_due_date}
-      </div>
+    <div class="card">
+      <div class="name">${c.name}</div>
+      <div class="mobile">${c.mobile}</div>
+      <div>Due: ${c.next_due_date}</div>
+      <button onclick="sendSingle('${c.mobile}','${c.name}')">WhatsApp</button>
+    </div>
     `;
   });
 
   document.getElementById("list").innerHTML = html;
 }
 
-// SEND TODAY
+function sendSingle(num,name){
+  let msg = `Namaste ${name} ji 🙏 Tyre check-up due hai`;
+  window.open(`https://wa.me/91${num}?text=${encodeURIComponent(msg)}`);
+}
+
 function sendToday(){
   let customers = JSON.parse(localStorage.getItem("customers")) || [];
   let today = new Date().toISOString().split("T")[0];
 
-  let list = customers.filter(c=>c.next_due_date===today);
-
-  list.forEach((c,i)=>{
-    let msg = `Namaste ${c.name} ji 🙏 Tyre check-up due hai`;
-    openWA(c.mobile,msg);
-    markSent(i);
+  customers.forEach((c,i)=>{
+    if(c.next_due_date===today){
+      sendSingle(c.mobile,c.name);
+      markSent(i);
+    }
   });
 }
 
-// FOLLOW-UP
 function sendFollowUps(){
   let customers = JSON.parse(localStorage.getItem("customers")) || [];
   let today = new Date();
@@ -92,23 +129,15 @@ function sendFollowUps(){
     let diff = Math.floor((today-last)/(1000*60*60*24));
 
     if(diff===3 || diff===7){
-      let msg = `Namaste ${c.name} ji 🙏 Reminder tyre check pending hai`;
-      openWA(c.mobile,msg);
+      sendSingle(c.mobile,c.name);
     }
   });
 }
 
-// MARK SENT
 function markSent(index){
   let customers = JSON.parse(localStorage.getItem("customers")) || [];
   customers[index].last_sent_date = new Date().toISOString().split("T")[0];
   localStorage.setItem("customers", JSON.stringify(customers));
-}
-
-// OPEN WHATSAPP
-function openWA(number,msg){
-  let url = `https://wa.me/91${number}?text=${encodeURIComponent(msg)}`;
-  window.open(url,"_blank");
 }
 
 </script>
