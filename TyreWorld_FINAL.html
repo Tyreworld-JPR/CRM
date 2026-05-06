@@ -1,18 +1,116 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Test CRM</title>
+  <title>TyreWorld CRM</title>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    button { padding:10px; margin:5px; cursor:pointer; }
+    .card {
+      border:1px solid #ddd;
+      padding:10px;
+      margin:10px 0;
+      border-radius:8px;
+    }
+  </style>
 </head>
+
 <body>
 
-<h1>TyreWorld CRM Working ✅</h1>
+<h2>TyreWorld CRM 🚗</h2>
 
-<button onclick="test()">Click Me</button>
+<button onclick="sendToday()">🚀 Send Today</button>
+<button onclick="sendFollowUps()">🔁 Follow-Up</button>
+
+<div id="list"></div>
 
 <script>
-function test(){
-  alert("System Working Perfect 🔥");
+
+// 🔗 GOOGLE SHEET CSV
+const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSVujJhOe5wbd7GZOTbbvDxG3DSQXyj7vynDP68DXuaYPk2SyFXIC84DuQFivAQrLnrYA2tBZt5SiKj/pub?output=csv";
+
+// LOAD DATA
+async function loadData(){
+  const res = await fetch(SHEET_URL);
+  const text = await res.text();
+
+  const rows = text.split("\n").map(r=>r.split(","));
+
+  let customers = rows.slice(1).map(r=>({
+    name: r[0],
+    mobile: r[1],
+    vehicle: r[2],
+    next_due_date: r[3],
+    last_sent_date: ""
+  }));
+
+  localStorage.setItem("customers", JSON.stringify(customers));
+  display(customers);
 }
+
+loadData();
+
+// DISPLAY
+function display(data){
+  let html = "";
+
+  data.forEach(c=>{
+    html += `
+      <div class="card">
+        <b>${c.name}</b><br>
+        ${c.mobile}<br>
+        Due: ${c.next_due_date}
+      </div>
+    `;
+  });
+
+  document.getElementById("list").innerHTML = html;
+}
+
+// SEND TODAY
+function sendToday(){
+  let customers = JSON.parse(localStorage.getItem("customers")) || [];
+  let today = new Date().toISOString().split("T")[0];
+
+  let list = customers.filter(c=>c.next_due_date===today);
+
+  list.forEach((c,i)=>{
+    let msg = `Namaste ${c.name} ji 🙏 Tyre check-up due hai`;
+    openWA(c.mobile,msg);
+    markSent(i);
+  });
+}
+
+// FOLLOW-UP
+function sendFollowUps(){
+  let customers = JSON.parse(localStorage.getItem("customers")) || [];
+  let today = new Date();
+
+  customers.forEach(c=>{
+    if(!c.last_sent_date) return;
+
+    let last = new Date(c.last_sent_date);
+    let diff = Math.floor((today-last)/(1000*60*60*24));
+
+    if(diff===3 || diff===7){
+      let msg = `Namaste ${c.name} ji 🙏 Reminder tyre check pending hai`;
+      openWA(c.mobile,msg);
+    }
+  });
+}
+
+// MARK SENT
+function markSent(index){
+  let customers = JSON.parse(localStorage.getItem("customers")) || [];
+  customers[index].last_sent_date = new Date().toISOString().split("T")[0];
+  localStorage.setItem("customers", JSON.stringify(customers));
+}
+
+// OPEN WHATSAPP
+function openWA(number,msg){
+  let url = `https://wa.me/91${number}?text=${encodeURIComponent(msg)}`;
+  window.open(url,"_blank");
+}
+
 </script>
 
 </body>
