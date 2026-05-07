@@ -17,6 +17,7 @@ button{padding:10px;border:none;border-radius:6px;margin:4px;cursor:pointer}
 .today{background:#4caf50;color:#fff}
 .overdue{background:#f44336;color:#fff}
 .follow{background:#2196f3;color:#fff}
+.auto{background:#000;color:#fff}
 .filter{background:#eee}
 .card{background:#fff;padding:12px;margin:10px 0;border-radius:10px;
 box-shadow:0 2px 6px rgba(0,0,0,.1)}
@@ -43,9 +44,9 @@ box-shadow:0 2px 6px rgba(0,0,0,.1)}
 </div>
 
 <div class="buttons">
-  <button class="today" onclick="sendToday()">🚀 Send Today</button>
-  <button class="overdue" onclick="sendOverdue()">⚠ Send Overdue</button>
-  <button class="follow" onclick="sendFollowUps()">🔁 Follow-Up</button>
+  <button class="today" onclick="runAutomation('today')">⚡ Auto Today</button>
+  <button class="overdue" onclick="runAutomation('overdue')">⚠ Auto Overdue</button>
+  <button class="follow" onclick="runAutomation('follow')">🔁 Auto Follow-Up</button>
 </div>
 
 <div class="buttons">
@@ -62,7 +63,7 @@ box-shadow:0 2px 6px rgba(0,0,0,.1)}
 
 <script>
 
-// 🔗 Google Sheet CSV
+// GOOGLE SHEET CSV
 const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSVujJhOe5wbd7GZOTbbvDxG3DSQXyj7vynDP68DXuaYPk2SyFXIC84DuQFivAQrLnrYA2tBZt5SiKj/pub?output=csv";
 
 let customers = [];
@@ -87,13 +88,13 @@ async function loadData(){
 
 loadData();
 
-// DATE LOGIC
+// CATEGORY
 function categorize(){
   let today = new Date().toISOString().split("T")[0];
 
-  let tomorrowDate = new Date();
-  tomorrowDate.setDate(new Date().getDate()+1);
-  let tomorrow = tomorrowDate.toISOString().split("T")[0];
+  let tmr = new Date();
+  tmr.setDate(new Date().getDate()+1);
+  let tomorrow = tmr.toISOString().split("T")[0];
 
   customers.forEach(c=>{
     if(c.next_due_date < today) c.status="overdue";
@@ -108,10 +109,10 @@ function categorize(){
 
 // STATS
 function updateStats(){
-  document.getElementById("todayCount").innerText = customers.filter(c=>c.status==="today").length;
-  document.getElementById("overCount").innerText = customers.filter(c=>c.status==="overdue").length;
-  document.getElementById("upCount").innerText = customers.filter(c=>c.status==="tomorrow").length;
-  document.getElementById("futureCount").innerText = customers.filter(c=>c.status==="future").length;
+  todayCount.innerText = customers.filter(c=>c.status==="today").length;
+  overCount.innerText = customers.filter(c=>c.status==="overdue").length;
+  upCount.innerText = customers.filter(c=>c.status==="tomorrow").length;
+  futureCount.innerText = customers.filter(c=>c.status==="future").length;
 }
 
 // DISPLAY
@@ -128,8 +129,7 @@ function display(data){
       <button onclick="sendSingle('${c.mobile}','${c.name}',${i})">WhatsApp</button>
     </div>`;
   });
-
-  document.getElementById("list").innerHTML = html;
+  list.innerHTML = html;
 }
 
 // FILTER
@@ -139,50 +139,88 @@ function filter(type){
 }
 
 // SEND SINGLE
-function sendSingle(num,name,index){
+function sendSingle(num,name,i){
   let msg = `Namaste ${name} ji 🙏 Tyre check-up due hai`;
   window.open(`https://wa.me/91${num}?text=${encodeURIComponent(msg)}`);
-  markSent(index);
-}
-
-// SEND TODAY
-function sendToday(){
-  customers.forEach((c,i)=>{
-    if(c.status==="today"){
-      sendSingle(c.mobile,c.name,i);
-    }
-  });
-}
-
-// SEND OVERDUE
-function sendOverdue(){
-  customers.forEach((c,i)=>{
-    if(c.status==="overdue"){
-      sendSingle(c.mobile,c.name,i);
-    }
-  });
-}
-
-// FOLLOW-UP
-function sendFollowUps(){
-  let today = new Date();
-
-  customers.forEach(c=>{
-    if(!c.last_sent_date) return;
-
-    let last = new Date(c.last_sent_date);
-    let diff = Math.floor((today-last)/(1000*60*60*24));
-
-    if(diff===3 || diff===7){
-      let msg = `Namaste ${c.name} ji 🙏 Reminder tyre check pending hai`;
-      window.open(`https://wa.me/91${c.mobile}?text=${encodeURIComponent(msg)}`);
-    }
-  });
+  markSent(i);
 }
 
 // MARK SENT
 function markSent(i){
   customers[i].last_sent_date = new Date().toISOString().split("T")[0];
+}
+
+// ================= AUTOMATION =================
+
+// CREATE QUEUE
+function createQueue(type){
+  let today = new Date().toISOString().split("T")[0];
+  let queue=[];
+
+  customers.forEach((c,i)=>{
+
+    if(type==="today" && c.status==="today"){
+      queue.push({i, mobile:c.mobile, msg:msg(c)});
+    }
+
+    if(type==="overdue" && c.status==="overdue"){
+      queue.push({i, mobile:c.mobile, msg:msg(c)});
+    }
+
+    if(type==="follow"){
+      if(!c.last_sent_date) return;
+
+      let diff = Math.floor((new Date()-new Date(c.last_sent_date))/(1000*60*60*24));
+
+      if(diff===3 || diff===7){
+        queue.push({i, mobile:c.mobile, msg:followMsg(c,diff)});
+      }
+    }
+
+  });
+
+  return queue;
+}
+
+// MSG
+function msg(c){
+  return `Namaste ${c.name} ji 🙏 Tyre check-up due hai`;
+}
+
+// FOLLOW MSG
+function followMsg(c,d){
+  if(d===3) return `Namaste ${c.name} ji 🙏 Reminder: tyre check pending hai`;
+  if(d===7) return `Namaste ${c.name} ji 🙏 Final reminder: service zaroor karwayein`;
+}
+
+// RUN AUTOMATION
+function runAutomation(type){
+  let queue = createQueue(type);
+
+  if(queue.length===0){
+    alert("No customers");
+    return;
+  }
+
+  let i=0;
+
+  function next(){
+    if(i>=queue.length){
+      alert("Done ✅");
+      return;
+    }
+
+    let q = queue[i];
+
+    window.open(`https://wa.me/91${q.mobile}?text=${encodeURIComponent(q.msg)}`);
+
+    markSent(q.i);
+
+    i++;
+    setTimeout(next,25000);
+  }
+
+  next();
 }
 
 </script>
