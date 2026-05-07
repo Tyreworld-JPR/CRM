@@ -9,23 +9,17 @@ body{margin:0;font-family:Arial;background:#f4f6f9}
 .header{background:#ff5722;color:#fff;padding:15px;font-size:20px}
 .container{padding:12px}
 .stats{display:flex;gap:10px;flex-wrap:wrap}
-.stat{
-  flex:1;min-width:120px;background:#fff;padding:12px;border-radius:10px;
-  box-shadow:0 2px 6px rgba(0,0,0,.1);text-align:center
-}
+.stat{flex:1;min-width:120px;background:#fff;padding:12px;border-radius:10px;
+box-shadow:0 2px 6px rgba(0,0,0,.1);text-align:center}
 .stat b{font-size:18px}
 .buttons{margin:10px 0}
-button{
-  padding:10px;border:none;border-radius:6px;margin:4px;cursor:pointer
-}
+button{padding:10px;border:none;border-radius:6px;margin:4px;cursor:pointer}
 .today{background:#4caf50;color:#fff}
 .overdue{background:#f44336;color:#fff}
 .follow{background:#2196f3;color:#fff}
 .filter{background:#eee}
-.card{
-  background:#fff;padding:12px;margin:10px 0;border-radius:10px;
-  box-shadow:0 2px 6px rgba(0,0,0,.1)
-}
+.card{background:#fff;padding:12px;margin:10px 0;border-radius:10px;
+box-shadow:0 2px 6px rgba(0,0,0,.1)}
 .name{font-weight:bold}
 .tag{font-size:11px;padding:3px 6px;border-radius:5px;margin-left:5px}
 .tod{background:#4caf50;color:#fff}
@@ -41,7 +35,6 @@ button{
 
 <div class="container">
 
-<!-- STATS -->
 <div class="stats">
   <div class="stat"><b id="todayCount">0</b><br>Today</div>
   <div class="stat"><b id="overCount">0</b><br>Overdue</div>
@@ -49,14 +42,12 @@ button{
   <div class="stat"><b id="futureCount">0</b><br>Future</div>
 </div>
 
-<!-- ACTION BUTTONS -->
 <div class="buttons">
   <button class="today" onclick="sendToday()">🚀 Send Today</button>
   <button class="overdue" onclick="sendOverdue()">⚠ Send Overdue</button>
   <button class="follow" onclick="sendFollowUps()">🔁 Follow-Up</button>
 </div>
 
-<!-- FILTER BUTTONS -->
 <div class="buttons">
   <button class="filter" onclick="filter('all')">All</button>
   <button class="filter" onclick="filter('today')">Today</button>
@@ -71,26 +62,25 @@ button{
 
 <script>
 
+// 🔗 Google Sheet CSV
 const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSVujJhOe5wbd7GZOTbbvDxG3DSQXyj7vynDP68DXuaYPk2SyFXIC84DuQFivAQrLnrYA2tBZt5SiKj/pub?output=csv";
 
-let allCustomers = [];
+let customers = [];
 
 // LOAD DATA
 async function loadData(){
   const res = await fetch(SHEET_URL);
   const text = await res.text();
 
-  const rows = text.split("\n").map(r=>r.split(","));
+  const rows = text.split("\n").map(r => r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/));
 
-  allCustomers = rows.slice(1).map(r=>({
-    name:r[0],
-    mobile:r[1],
-    vehicle:r[2],
-    next_due_date:r[3],
-    last_sent_date:""
+  customers = rows.slice(1).map(r => ({
+    name: r[0]?.trim(),
+    mobile: r[1]?.trim(),
+    vehicle: r[2]?.trim(),
+    next_due_date: r[3]?.trim(),
+    last_sent_date: ""
   }));
-
-  localStorage.setItem("customers", JSON.stringify(allCustomers));
 
   categorize();
 }
@@ -105,7 +95,7 @@ function categorize(){
   tomorrowDate.setDate(new Date().getDate()+1);
   let tomorrow = tomorrowDate.toISOString().split("T")[0];
 
-  allCustomers.forEach(c=>{
+  customers.forEach(c=>{
     if(c.next_due_date < today) c.status="overdue";
     else if(c.next_due_date===today) c.status="today";
     else if(c.next_due_date===tomorrow) c.status="tomorrow";
@@ -113,21 +103,20 @@ function categorize(){
   });
 
   updateStats();
-  display(allCustomers);
+  display(customers);
 }
 
 // STATS
 function updateStats(){
-  document.getElementById("todayCount").innerText = allCustomers.filter(c=>c.status==="today").length;
-  document.getElementById("overCount").innerText = allCustomers.filter(c=>c.status==="overdue").length;
-  document.getElementById("upCount").innerText = allCustomers.filter(c=>c.status==="tomorrow").length;
-  document.getElementById("futureCount").innerText = allCustomers.filter(c=>c.status==="future").length;
+  document.getElementById("todayCount").innerText = customers.filter(c=>c.status==="today").length;
+  document.getElementById("overCount").innerText = customers.filter(c=>c.status==="overdue").length;
+  document.getElementById("upCount").innerText = customers.filter(c=>c.status==="tomorrow").length;
+  document.getElementById("futureCount").innerText = customers.filter(c=>c.status==="future").length;
 }
 
 // DISPLAY
 function display(data){
   let html="";
-
   data.forEach((c,i)=>{
     let tagClass = c.status==="today"?"tod":c.status==="overdue"?"ovd":c.status==="tomorrow"?"upc":"fut";
 
@@ -145,20 +134,20 @@ function display(data){
 
 // FILTER
 function filter(type){
-  if(type==="all") display(allCustomers);
-  else display(allCustomers.filter(c=>c.status===type));
+  if(type==="all") display(customers);
+  else display(customers.filter(c=>c.status===type));
 }
 
 // SEND SINGLE
 function sendSingle(num,name,index){
   let msg = `Namaste ${name} ji 🙏 Tyre check-up due hai`;
-  openWA(num,msg);
+  window.open(`https://wa.me/91${num}?text=${encodeURIComponent(msg)}`);
   markSent(index);
 }
 
 // SEND TODAY
 function sendToday(){
-  allCustomers.forEach((c,i)=>{
+  customers.forEach((c,i)=>{
     if(c.status==="today"){
       sendSingle(c.mobile,c.name,i);
     }
@@ -167,7 +156,7 @@ function sendToday(){
 
 // SEND OVERDUE
 function sendOverdue(){
-  allCustomers.forEach((c,i)=>{
+  customers.forEach((c,i)=>{
     if(c.status==="overdue"){
       sendSingle(c.mobile,c.name,i);
     }
@@ -178,7 +167,7 @@ function sendOverdue(){
 function sendFollowUps(){
   let today = new Date();
 
-  allCustomers.forEach(c=>{
+  customers.forEach(c=>{
     if(!c.last_sent_date) return;
 
     let last = new Date(c.last_sent_date);
@@ -186,19 +175,14 @@ function sendFollowUps(){
 
     if(diff===3 || diff===7){
       let msg = `Namaste ${c.name} ji 🙏 Reminder tyre check pending hai`;
-      openWA(c.mobile,msg);
+      window.open(`https://wa.me/91${c.mobile}?text=${encodeURIComponent(msg)}`);
     }
   });
 }
 
 // MARK SENT
 function markSent(i){
-  allCustomers[i].last_sent_date = new Date().toISOString().split("T")[0];
-}
-
-// OPEN WA
-function openWA(num,msg){
-  window.open(`https://wa.me/91${num}?text=${encodeURIComponent(msg)}`,"_blank");
+  customers[i].last_sent_date = new Date().toISOString().split("T")[0];
 }
 
 </script>
