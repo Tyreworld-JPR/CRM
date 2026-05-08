@@ -342,23 +342,27 @@ r.split(/,(?=(?:(?:[^\"]*\"){2})*[^\"]*$)/)
 );
 
 DB = rows
+DB = rows
 .slice(1)
 .filter(r => r[0] && r[1])
 .map(r => ({
 
-name: r[0]?.replace(/\"/g,'').trim(),
+name: (r[0] || "").replace(/\"/g,'').trim(),
 
-mobile: r[1]?.replace(/\D/g,''),
+mobile: (r[1] || "").replace(/\D/g,''),
 
-vehicle: r[2]?.replace(/\"/g,'').trim(),
+vehicle: (r[2] || "").replace(/\"/g,'').trim(),
 
-due_date: r[3]?.replace(/\"/g,'').trim(),
+due_date: (r[9] || "").replace(/\"/g,'').trim(),
 
 due_status:
-r[4]?.toUpperCase().trim() || "FUTURE",
+(r[10] || "FUTURE").replace(/\"/g,'').trim(),
 
 tyre_status:
-r[5]?.toUpperCase().trim() || "OK",
+(r[15] || "OK").replace(/\"/g,'').trim(),
+
+message:
+(r[11] || "").replace(/\"/g,'').trim(),
 
 last_sent_date:"",
 revenue:0
