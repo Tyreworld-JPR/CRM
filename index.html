@@ -33,7 +33,7 @@ box-shadow:0 2px 6px rgba(0,0,0,.1)}
 <body>
 
 <div class="header">🚗 TyreWorld CRM</div>
-
+function sendCategory(type) {
 <div class="container">
 
 <div class="stats">
@@ -141,10 +141,8 @@ function filter(type){
 // SEND SINGLE
 function sendSingle(num,name,i){
   let msg = `Namaste ${name} ji 🙏 Tyre check-up due hai`;
-  window.open(`https://wa.me/91${num}?text=${encodeURIComponent(msg)}`);
-  markSent(i);
+  window.open("TyreWorld_AutoSender.html", "_blank");
 }
-
 // MARK SENT
 function markSent(i){
   customers[i].last_sent_date = new Date().toISOString().split("T")[0];
